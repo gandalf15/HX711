@@ -320,56 +320,41 @@ class HX711:
 		return signed_data
 	
 	############################################################
-	# _get_readings function reads data once or several times. #
-	# Then results adds up and return. Max number of readings  #
-	# is 99.						   #
-	# INPUTS: times	# how many times to read data. Default 1   #
-	# OUTPUTS: BOOL | INT 					   #
-	############################################################
-	def _get_readings(self, times=1):
-		if times > 0 and times < 100: 
-			data = 0
-			data_sum = 0
-			# check if wanted channel is currently prepared to read from.
-			if self._wanted_channel == self._current_channel:
-				for i in range(5):	# try multiple times if get False
-					for j in range(times):		# for number of times read and add up all readings.
-						data = self._read()
-						if data != False:
-							data_sum += data
-							if j == times-1:
-								return data_sum
-						else:
-							if self._debug_mode:
-								print('self._get_readings() Cannot calculate average. Got False\n')
-							break
-				return False
-			else:	# else it tries to set the required channel.
-				for i in range(3):
-					result = self._read()
-					if result != False:	# did not get False so the required channel is set.
-						return self._get_readings(times) # recursive call because the channel is set.
-					if self._debug_mode:
-						print('Cannot set the wanted channel')
-						print('Resetting HX711...\n')
-				self.reset()	# reset because it cannot set the required channel
-				return False
-		else:
-			raise ValueError('function "_get_readings" parameter "times" has to be in range 1 up to 99.\n I have got: '\
-						+ str(times))
-	
-	############################################################
-	# get_raw_data_mean returns average value of readings.	   #
+	# get_raw_data_mean returns mean value of readings.	   #
 	# If return False something is wrong. Try debug mode.	   #
 	# INPUTS: times # how many times to read data. Default 1   #
 	# OUTPUTS: INT | BOOL					   #
 	############################################################
 	def get_raw_data_mean(self, times=1):
-		result = self._get_readings(times)
-		if result != False:
-			return result / times
+		if times > 0 and times < 100: 
+			data_list = []
+			for i in range(times):		# for number of times read and add up all readings.
+				data_list.append(self._read())
+			if times > 2:
+				data_pstdev = stat.pstdev(data_list)
+				data_mean = stat.mean(data_list)
+				max_num = data_mean + data_pstdev
+				min_num = data_mean - data_pstdev
+				filtered_data = []
+
+				for index,num in enumerate(data_list):
+					if (num > min_num and num < max_num):
+						filtered_data.append(num)
+				if self._debug_mode:
+					print('data_list: ' + str(data_list))
+					print('filtered_data lsit: ' + str(filtered_data))
+					print('pstdev data: ' + str(data_pstdev))
+					print('pstdev filtered data: ' + str(stat.pstdev(filtered_data)))
+					print('mean data_list: ' + str(stat.mean(data_list)))
+					print('mean filtered_data: ' + str(stat.mean(filtered_data)))
+				if stat.pstdev(filtered_data) > 1000:
+					return self.get_raw_data_mean(times)
+				return stat.mean(filtered_data)
+			else:
+				return stat.mean(data_list)
 		else:
-			return False
+			raise ValueError('function "get_raw_data_mean" parameter "times" has to be in range 1 up to 99.\n I have got: '\
+						+ str(times))
 	
 	############################################################
 	# get_data_mean returns average value of readings minus    #
@@ -379,14 +364,14 @@ class HX711:
 	# OUTPUTS: INT | BOOL					   #
 	############################################################
 	def get_data_mean(self, times=1):
-		result = self._get_readings(times)
+		result = self.get_raw_data_mean(times)
 		if result != False:
 			if self._current_channel =='A' and self._gain_channel_A == 128:
-				return (result / times)- self._offset_A_128
+				return result- self._offset_A_128
 			elif self._current_channel == 'A' and self._gain_channel_A == 64:
-				return (result / times) - self._offset_A_64
+				return result - self._offset_A_64
 			else:
-				return (result / times) - self._offset_B
+				return result - self._offset_B
 		else:
 			return False
 	
@@ -399,14 +384,14 @@ class HX711:
 	# OUTPUTS: INT | BOOL 					   #
 	############################################################
 	def get_weight_mean(self, times=1):
-		result = self._get_readings(times)
+		result = self.get_raw_data_mean(times)
 		if result != False:
 			if self._current_channel =='A' and self._gain_channel_A == 128:
-				return ((result / times)- self._offset_A_128) / self._scale_ratio_A_128
+				return (result - self._offset_A_128) / self._scale_ratio_A_128
 			elif self._current_channel == 'A' and self._gain_channel_A == 64:
-				return ((result / times) - self._offset_A_64) / self._scale_ratio_A_64
+				return (result - self._offset_A_64) / self._scale_ratio_A_64
 			else:
-				return ((result / times) - self._offset_B) / self._scale_ratio_B
+				return (result - self._offset_B) / self._scale_ratio_B
 		else:
 			return False
 
@@ -450,7 +435,7 @@ class HX711:
 	def reset(self):
 		self.power_down()
 		self.power_up()
-		result = self._get_readings(6)
+		result = self.get_raw_data_mean(6)
 		if result != False:
 			return True
 		else:

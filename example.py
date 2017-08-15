@@ -62,6 +62,7 @@ try:
 		known_weight_grams = input('Write how many grams it was and press Enter: ')
 		try:
 			value = int(known_weight_grams)
+			print(value)
 		except ValueError:
 			print('Expected integer and I have got: '\
 					+ str(known_weight_grams))
@@ -98,9 +99,9 @@ try:
 	# set offset for channel B then gain_A is not required
 	# if no arguments 'channel' and 'gain_A' provided. The offset is
 	# set for the current channel and gain
-	hx.set_offset(offset=15000)	
-	print('Now I changed the offset for channel A and for gain currently used')
-	print(hx.get_data_mean(3))
+	#hx.set_offset(offset=15000)	
+	#print('Now I changed the offset for channel A and for gain currently used')
+	#print(hx.get_data_mean(3))
 	# turns on debug mode. It prints many things so you can find problem
 	#hx.set_debug_mode(flag=True)
 	
@@ -124,8 +125,8 @@ try:
 		result = hx.set_gain_A(64)
 		if result:
 			# without argument default is 1
-			for i in range(10):
-				print ('-> Raw data channel A gain 64: ' + str(hx.get_raw_data_mean()))
+			print ('-> Raw data channel A gain 64: ' + str(hx.get_raw_data_mean(10)))
+			print ('-> Weight channel A gain 64: ' + str(hx.get_weight_mean(10)))
 			print('--------------------------------------------')
 		else:
 			print('cannot set gain 64')
@@ -133,8 +134,8 @@ try:
 		result = hx.set_gain_A(128)
 		if result:
 			# without argument default is 1
-			for i in range(10):
-				print ('-> Raw data channel A gain 128: ' + str(hx.get_raw_data_mean()))
+			print ('-> Raw data channel A gain 128: ' + str(hx.get_raw_data_mean(10)))
+			print ('-> Weight channel A gain 128: ' + str(hx.get_weight_mean(10)))
 			print('--------------------------------------------')
 		else:
 			print('cannot set gain 128')
