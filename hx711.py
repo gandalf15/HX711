@@ -336,6 +336,9 @@ class HX711:
 				max_num = data_mean + data_pstdev
 				min_num = data_mean - data_pstdev
 				filtered_data = []
+				
+				if data_pstdev <=100:
+					return data_mean
 
 				for index,num in enumerate(data_list):
 					if (num > min_num and num < max_num):
@@ -347,7 +350,7 @@ class HX711:
 					print('pstdev filtered data: ' + str(stat.pstdev(filtered_data)))
 					print('mean data_list: ' + str(stat.mean(data_list)))
 					print('mean filtered_data: ' + str(stat.mean(filtered_data)))
-				if stat.pstdev(filtered_data) > 1000:
+				if stat.pstdev(filtered_data) > 100:
 					return self.get_raw_data_mean(times)
 				return stat.mean(filtered_data)
 			else:
