@@ -16,6 +16,8 @@ So what is the difference?
 
 Datasheet: https://cdn.sparkfun.com/datasheets/Sensors/ForceFlex/hx711_english.pdf
 
+Great explanation of strain gauges: https://www.allaboutcircuits.com/textbook/direct-current/chpt-9/strain-gauges/
+
 I was inspired by bogde: https://github.com/bogde/HX711
 
 Sometime it is reading invalid data because the pin pd_sck is high for 60 us or longer.
