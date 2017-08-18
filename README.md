@@ -23,4 +23,4 @@ Sometime it is reading invalid data because the pin pd_sck is high for 60 us or 
 To eliminate this problem I implemented simple filter which solve this problem.
 See function get_raw_data_mean() in hx711.py
 
-TODO: comments, standard deviation as a filter.
+It is not perfect and I will implement this in C language in the future.
