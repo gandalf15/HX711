@@ -13,7 +13,7 @@ class HX711:
 					' and pd_sck_pin: ' + str(pd_sck_pin) + '\n')
 		
 		self._gain_channel_A = 0 	# init to 0	
-		self._offset_A_128 = 0 		# init offset for channel A and gain 128
+		self._offset_A_128 = 0		# init offset for channel A and gain 128
 		self._offset_A_64 = 0		# init offset for channel A and gain 64
 		self._offset_B = 0 		# init offset for channel B
 		self._last_raw_data_A_128 = 0	# init last data to 0 for channel A and gain 128
@@ -196,6 +196,22 @@ class HX711:
 					+ 'I have got: ' + str(flag) + '\n' )
 	
 	############################################################
+	# save last raw data does exactly how it looks.		   #
+	# If return False something is wrong. Try debug mode.	   #
+	# INPUTS: channel('A'|'B'), gain_A(64|128)		   #
+	# OUTPUTS: BOOL						   #
+	############################################################
+	def _save_last_raw_data(self, channel, gain_A, data):
+		if channel == 'A' and gain_A == 128:
+			self._last_raw_data_A_128 = data
+		elif channel == 'A' and gain_A == 64:
+			self._last_raw_data_A_64 = data
+		elif channel == 'B':
+			self._last_raw_data_B = data
+		else:
+			return False
+	
+	############################################################
 	# _ready function check if data is prepared for reading.   #
 	# It returns Boolean value. True means that data is ready  #
 	# INPUTS: none						   #
@@ -266,18 +282,18 @@ class HX711:
 			# Left shift by one bit then bitwise OR with the new bit. 
 			data_in = (data_in<<1) | GPIO.input(self._dout)
 			
-		# set gain and channel for the next reading
-		backup_current_channel = self._current_channel
 		if self._wanted_channel == 'A' and self._gain_channel_A == 128:
 			if not self._set_channel_gain(1):	# send only one bit which is 1
 				return False			# return False because channel was not set properly
 			else:
 				self._current_channel = 'A'	# else set current channel variable
+				self._gain_channel_A = 128	# and gain
 		elif self._wanted_channel == 'A' and self._gain_channel_A == 64:
 			if not self._set_channel_gain(3):	# send three ones
 				return False			# return False because channel was not set properly
 			else:
 				self._current_channel = 'A'	# else set current channel variable
+				self._gain_channel_A = 64
 		else:
 			if  not self._set_channel_gain(2): 	# send two ones 
 				return False			# return False because channel was not set properly
@@ -303,16 +319,6 @@ class HX711:
 		
 		if self._debug_mode:
 			print('Converted 2\'s complement value: ' + str(signed_data) + '\n')
-	
-		# signed_data is correct range then save it as a last correct value and return it.
-		if backup_current_channel == 'A' and self._gain_channel_A == 128:
-			self._last_raw_data_A_128 = signed_data
-		elif backup_current_channel == 'A' and self._gain_channel_A == 64:
-			self._last_raw_data_A_64 = signed_data
-		else:
-			self.last_raw_data_B = signed_data
-		if self._debug_mode:
-			print('Backup current channel vatiable: ' + str(backup_current_channel) + '\n')
 		
 		return signed_data
 	
@@ -323,6 +329,8 @@ class HX711:
 	# OUTPUTS: INT | BOOL					   #
 	############################################################
 	def get_raw_data_mean(self, times=1):
+		backup_channel = self._current_channel 		# do backup of current channel befor reading for later use
+		backup_gain = self._gain_channel_A		# backup of gain channel A
 		if times > 0 and times < 100:		# check if times is in required range 
 			data_list = []			# create empty list
 			for i in range(times):		# for number of times read and add up all readings.
@@ -335,6 +343,7 @@ class HX711:
 				filtered_data = []			# create new list for filtered data
 				
 				if data_pstdev <=100:			# is pstdev is less than 100 it is ok
+					self._save_last_raw_data(backup_channel, backup_gain, data_mean)	# save last data
 					return data_mean		# just return the calculated mean
 
 				for index,num in enumerate(data_list):	# now I know that pstdev is greater then iterate through the list
@@ -349,9 +358,13 @@ class HX711:
 					print('mean filtered_data: ' + str(stat.mean(filtered_data)))
 				if stat.pstdev(filtered_data) > 100:	# check if the filtered data do not vary too much
 					return self.get_raw_data_mean(times)	# if yes then recursively call itself
-				return stat.mean(filtered_data)		# now the data are consistent, calculate mean and return
-			else:
-				return stat.mean(data_list)		# times was 2 or less just return mean
+				f_data_mean = stat.mean(filtered_data)		# calculate mean from filtered data
+				self._save_last_raw_data(backup_channel, backup_gain, f_data_mean)	# save last data
+				return f_data_mean		# return mean from filtered data
+			else: 
+				data_mean = stat.mean(data_list)		# calculate mean from the list
+				self._save_last_raw_data(backup_channel, backup_gain, data_mean)	# save last data
+				return data_mean		# times was 2 or less just return mean
 		else:
 			raise ValueError('function "get_raw_data_mean" parameter "times" has to be in range 1 up to 99.\n I have got: '\
 						+ str(times))
@@ -419,7 +432,7 @@ class HX711:
 	# INPUTS: channel('A'|'B'), gain(64|128)		   #
 	# OUTPUTS: INT						   #
 	############################################################
-	def get_last_raw_data(self,channel='', gain_A=0):
+	def get_last_raw_data(self, channel='', gain_A=0):
 		if channel == 'A' and gain_A == 128: 
 			return self._last_raw_data_A_128
 		elif channel == 'A' and gain_A == 64:
@@ -441,7 +454,7 @@ class HX711:
 	# INPUTS: Channel('A'|'B'), Gain(64|128)		   #
 	# OUTPUTS: INT						   #
 	############################################################
-	def get_current_offset(channel='', gain_A=0):
+	def get_current_offset(self, channel='', gain_A=0):
 		if channel == 'A' and gain_A == 128: 
 			return self._offset_A_128
 		elif channel == 'A' and gain_A == 64:
@@ -463,7 +476,7 @@ class HX711:
 	# INPUTS: Channel('A'|'B'), Gain(64|128)		   #
 	# OUTPUTS: INT						   #
 	############################################################
-	def get_current_scale_ratio(channel='', gain_A=0):
+	def get_current_scale_ratio(self, channel='', gain_A=0):
 		if channel == 'A' and gain_A == 128: 
 			return self._scale_ratio_A_128
 		elif channel == 'A' and gain_A == 64:
