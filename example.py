@@ -55,10 +55,10 @@ try:
 		print('Mean value from HX711 subtracted by offset: ' + str(data))
 		known_weight_grams = input('Write how many grams it was and press Enter: ')
 		try:
-			value = int(known_weight_grams)
+			value = float(known_weight_grams)
 			print(str(value) + ' grams')
 		except ValueError:
-			print('Expected integer and I have got: '\
+			print('Expected integer or float and I have got: '\
 					+ str(known_weight_grams))
 
 		# set scale ratio for particular channel and gain which is 

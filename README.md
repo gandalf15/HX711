@@ -14,6 +14,9 @@ So what is the difference?
 	- It detects if pin pd_sck is high for longer than 60 us and therefore evalueates reading as Faulty. Then repeats. (60 us is important. Read Datasheet for more info.)
 	- It has a simple filter (based on standard deviation) for detecting incorrect values. Therefore it provides better and more precise readings.
 
+I recommend to connect pin 15(RATE) of HX711 to VCC (+3.3V) in order to get 80 samples per second. By default it is only 10.
+If you have a cheap green breakout board as I have, you have to desolder and bent the pin 15(RATE). Then soldeer short wire to VCC.
+
 Datasheet: https://cdn.sparkfun.com/datasheets/Sensors/ForceFlex/hx711_english.pdf
 
 Great explanation of strain gauges: https://www.allaboutcircuits.com/textbook/direct-current/chpt-9/strain-gauges/
