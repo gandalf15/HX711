@@ -25,6 +25,7 @@ class HX711:
 		self._scale_ratio_A_64 = 1	# init to 1
 		self._scale_ratio_B = 1		# init to 1
 		self._debug_mode = False	# init debug mode to False
+		self._pstdev_filter = True	# pstdev filter is by default ON
 		
 		GPIO.setmode(GPIO.BCM) 			# set GPIO pin mode to BCM numbering
 		GPIO.setup(self._pd_sck, GPIO.OUT)	# pin _pd_sck is output only
@@ -175,6 +176,25 @@ class HX711:
 		else:
 			raise ValueError('In function "set_scale_ratio" parameter "scale_ratio" has to be '\
 					+ 'positive number.\nI have got: ' + str(scale_ratio) + '\n')
+	
+	############################################################
+	# set_pstdev_filter function is for turning on and off 	   #
+	# population standard deviation filter.			   #
+	# INPUTS: flag(BOOL)					   #
+	# OUTPUTS: BOOL 	# if True then it is executed ok   #
+	############################################################
+	def set_pstdev_filter(self, flag=False):
+		if flag == False:
+			self._pstdev_filter = False
+			print('Population standard deviation filter DISABLED')
+			return True
+		elif flag == True:
+			self._pstdev_filter = True
+			print('Population standatd deviation filter ENABLED')
+			return True
+		else:
+			raise ValueError('In function "set_pstdev_filter" parameter "flag" can be only BOOL value.\n'
+					+ 'I have got: ' + str(flag) + '\n' )
 	
 	############################################################
 	# set_debug_mode function is for turning on and off 	   #
@@ -335,7 +355,7 @@ class HX711:
 			data_list = []			# create empty list
 			for i in range(times):		# for number of times read and add up all readings.
 				data_list.append(self._read())	# append every read value to the list
-			if times > 2:			# if times is > 2 filter the data
+			if times > 2 and self._pstdev_filter:			# if times is > 2 filter the data
 				data_pstdev = stat.pstdev(data_list)	# calculate population standard deviation from the data
 				data_mean = stat.mean(data_list)	# calculate mean from the collected data
 				max_num = data_mean + data_pstdev	# calculate max number which is within pstdev
@@ -416,6 +436,14 @@ class HX711:
 	############################################################
 	def get_current_channel(self):
 		return self._current_channel 
+	
+	############################################################
+	# get pstdev filter status returns True if turned on.	   #
+	# INPUTS: none						   #
+	# OUTPUTS: INT						   #
+	############################################################
+	def get_pstdev_filter_status(self):
+		return self._pstdev_filter
 	
 	############################################################
 	# get current gain A returns the value of current gain on  #
