@@ -1,4 +1,4 @@
-HX711 class for Rasperry Pi written in Python 3
+HX711 class for Rasperry Pi 2 and 3 written in Python 3
 
 
 I decided to write my own python class simply because all what I found was not enough good for my purpose.
