@@ -258,9 +258,9 @@ class HX711:
 		GPIO.output(self._pd_sck, False) # start by setting the pd_sck to false
 		ready_counter = 0		# init the counter to 0
 		while (not self._ready() and ready_counter <= 40): 
-			time.sleep(0.05)	# sleep for 50 ms because data is not ready
+			time.sleep(0.01)	# sleep for 10 ms because data is not ready
 			ready_counter += 1 	# increment counter
-			if ready_counter == 40: # if counter reached max value then return False
+			if ready_counter == 50: # if counter reached max value then return False
 				if self._debug_mode:
 					print('self._read() not ready after 40 trials\n')
 				return False
