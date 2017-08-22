@@ -183,7 +183,7 @@ class HX711:
 	# INPUTS: flag(BOOL)					   #
 	# OUTPUTS: BOOL 	# if True then it is executed ok   #
 	############################################################
-	def set_pstdev_filter(self, flag=False):
+	def set_pstdev_filter(self, flag=True):
 		if flag == False:
 			self._pstdev_filter = False
 			print('Population standard deviation filter DISABLED')
