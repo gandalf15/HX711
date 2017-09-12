@@ -1,6 +1,7 @@
+#!/usr/bin/env python
 import RPi.GPIO as GPIO
 import time
-import statistics as stat
+import numpy as np
 class HX711:
 	def __init__(self, dout_pin, pd_sck_pin, gain_channel_A=128, select_channel='A'):
 		if (isinstance(dout_pin, int) and 
@@ -186,11 +187,13 @@ class HX711:
 	def set_pstdev_filter(self, flag=True):
 		if flag == False:
 			self._pstdev_filter = False
-			print('Population standard deviation filter DISABLED')
+			if self._debug_mode:
+				print('Population standard deviation filter DISABLED')
 			return True
 		elif flag == True:
 			self._pstdev_filter = True
-			print('Population standatd deviation filter ENABLED')
+			if self._debug_mode:
+				print('Population standatd deviation filter ENABLED')
 			return True
 		else:
 			raise ValueError('In function "set_pstdev_filter" parameter "flag" can be only BOOL value.\n'
@@ -253,18 +256,8 @@ class HX711:
 	############################################################
 	def _set_channel_gain(self, num):
 			for i in range(num):
-				start_counter = time.perf_counter() # start timer now.
 				GPIO.output(self._pd_sck, True) # set high
 				GPIO.output(self._pd_sck, False) # set low
-				end_counter = time.perf_counter() # stop timer
-				if end_counter-start_counter >= 0.00006: # check if hx 711 did not turn off...
-				# if pd_sck pin is HIGH for 60 us and more than the HX 711 enters power down mode.
-					if self._debug_mode:
-						print('Not enough fast while setting gain and channel')
-						print('Time elapsed: ' + str(end_counter - start_counter))
-						#print('Resetting HX711...\n')
-					#self.reset() 	# reset hx 711 because it turned off
-					return False
 			return True
 	
 	############################################################
@@ -288,16 +281,8 @@ class HX711:
 		# read first 24 bits of data
 		data_in = 0	# 2's complement data from hx 711
 		for i in range(24):
-			start_counter = time.perf_counter() 	# start timer
 			GPIO.output(self._pd_sck, True) 	# request next bit from hx 711
 			GPIO.output(self._pd_sck, False)
-			end_counter = time.perf_counter()	# stop timer
-			if end_counter - start_counter >= 0.00006: # check if the hx 711 did not turn off...
-			# if pd_sck pin is HIGH for 60 us and more than the HX 711 enters power down mode.
-				if self._debug_mode:
-					print('Not enough fast while reading data')
-					print ('Time elapsed: ' + str(end_counter - start_counter))
-				return False
 			# Shift the bits as they come to data_in variable.
 			# Left shift by one bit then bitwise OR with the new bit. 
 			data_in = (data_in<<1) | GPIO.input(self._dout)
@@ -356,8 +341,8 @@ class HX711:
 			for i in range(times):		# for number of times read and add up all readings.
 				data_list.append(self._read())	# append every read value to the list
 			if times > 2 and self._pstdev_filter:			# if times is > 2 filter the data
-				data_pstdev = stat.pstdev(data_list)	# calculate population standard deviation from the data
-				data_mean = stat.mean(data_list)	# calculate mean from the collected data
+				data_pstdev = np.std(data_list)	# calculate population standard deviation from the data
+				data_mean = np.mean(data_list)	# calculate mean from the collected data
 				max_num = data_mean + data_pstdev	# calculate max number which is within pstdev
 				min_num = data_mean - data_pstdev	# calculate min number which is within pstdev
 				filtered_data = []			# create new list for filtered data
@@ -373,16 +358,14 @@ class HX711:
 					print('data_list: ' + str(data_list))
 					print('filtered_data lsit: ' + str(filtered_data))
 					print('pstdev data: ' + str(data_pstdev))
-					print('pstdev filtered data: ' + str(stat.pstdev(filtered_data)))
-					print('mean data_list: ' + str(stat.mean(data_list)))
-					print('mean filtered_data: ' + str(stat.mean(filtered_data)))
-				if stat.pstdev(filtered_data) > 100:	# check if the filtered data do not vary too much
-					return self.get_raw_data_mean(times)	# if yes then recursively call itself
-				f_data_mean = stat.mean(filtered_data)		# calculate mean from filtered data
+					print('pstdev filtered data: ' + str(np.std(filtered_data)))
+					print('mean data_list: ' + str(np.mean(data_list)))
+					print('mean filtered_data: ' + str(np.mean(filtered_data)))
+				f_data_mean = np.mean(filtered_data)		# calculate mean from filtered data
 				self._save_last_raw_data(backup_channel, backup_gain, f_data_mean)	# save last data
 				return f_data_mean		# return mean from filtered data
 			else: 
-				data_mean = stat.mean(data_list)		# calculate mean from the list
+				data_mean = np.mean(data_list)		# calculate mean from the list
 				self._save_last_raw_data(backup_channel, backup_gain, data_mean)	# save last data
 				return data_mean		# times was 2 or less just return mean
 		else:

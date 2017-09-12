@@ -85,7 +85,7 @@ try:
 	# be aware that HX711 sometimes return invalid or wrong data.
 	# you can probably see it now
 	print('Now I will print data quickly, but sometimes wrong.')
-	input('That is why I recommend always passing argument times=5 or higher value')
+	input('That is why I recommend always passing argument times=10 or higher value')
 	for i in range(40):
 		# the value will vary because it is only one immediate reading.
 		# the default speed for hx711 is 10 samples per second
