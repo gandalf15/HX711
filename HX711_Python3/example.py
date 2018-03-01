@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from hx711 import HX711		# import the class HX711
 import RPi.GPIO as GPIO		# import GPIO
-import time
 
 try:
 	# Create an object hx which represents your real hx711 chip
@@ -47,7 +46,7 @@ try:
 	else:
 		print('invalid data')
 
-	# In order to calculate the conversion ratioto some units, in my case I want grams,
+	# In order to calculate the conversion ratio to some units, in my case I want grams,
 	# you must have known weight.
 	input('Put known weight on the scale and then press Enter')
 	#hx.set_debug_mode(True)
@@ -102,11 +101,11 @@ try:
 	print('Current offset for channel A and gain 128: ' + str(offset))
 	# if no arguments passed then it return offset for the currently selected channel and gain
 	offset =  hx.get_current_offset()
-	print('Current offset for channel A and gain 128: ' + str(offset))
+	print('Current offset for channel A and the current gain (64): ' + str(offset))
 	offset =  hx.get_current_offset(channel='B')	# for channel B no argument gain_A
-	print('Current offset for channel A and gain 128: ' + str(offset))
+	print('Current offset for channel B: ' + str(offset))
 	
-	# set offset manually for particulari channel and gain. If you want to 
+	# set offset manually for particular channel and gain. If you want to
 	# set offset for channel B then gain_A is not required
 	# if no arguments 'channel' and 'gain_A' provided. The offset is
 	# set for the current channel and gain
