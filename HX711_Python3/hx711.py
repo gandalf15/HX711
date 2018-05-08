@@ -250,7 +250,7 @@ class HX711:
 	# _set_channel_gain is called only from _read function.    #
 	# It finishes the data transmission for hx711 which sets   #
 	# the next required gain and channel.			   #
-	# If it return True it is OK. 				   #
+	# If it returns True it is OK. 				   #
 	# INPUT: num (1|2|3)	# how many ones it sends	   #
 	# OUTPUTS: BOOL 					   #
 	############################################################
@@ -261,12 +261,12 @@ class HX711:
 				GPIO.output(self._pd_sck, False) # set low
 				end_counter = time.perf_counter() # stop timer
 				if end_counter-start_counter >= 0.00006: # check if hx 711 did not turn off...
-				# if pd_sck pin is HIGH for 60 us and more than the HX 711 enters power down mode.
+				# if pd_sck pin is HIGH for 60 us and more than output info in debug mode.
 					if self._debug_mode:
 						print('Not enough fast while setting gain and channel')
 						print('Time elapsed: ' + str(end_counter - start_counter))
 					# hx711 has turned off. First few readings are inaccurate.
-					# Despite it this reading was ok and data can be used.
+					# Still, they can be used because they will get filtered out.
 					result = self.get_raw_data_mean(6) # set for the next reading.
 					if result == False:
 						return False
