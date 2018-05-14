@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 from hx711_python_2 import HX711		# import the class HX711
 import RPi.GPIO as GPIO		# import GPIO
 
