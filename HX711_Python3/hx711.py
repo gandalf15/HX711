@@ -2,9 +2,11 @@
 This file holds HX711 class
 """
 #!/usr/bin/env python3
-import RPi.GPIO as GPIO
-import time
+
 import statistics as stat
+import time
+
+import RPi.GPIO as GPIO
 
 
 class HX711:
@@ -315,7 +317,7 @@ class HX711:
 		Returns: bool True if HX711 is ready for the next reading
 			False if HX711 is not ready for the next reading
 		"""
-        for i in range(num):
+        for _ in range(num):
             start_counter = time.perf_counter()
             GPIO.output(self._pd_sck, True)
             GPIO.output(self._pd_sck, False)
@@ -354,7 +356,7 @@ class HX711:
 
         # read first 24 bits of data
         data_in = 0  # 2's complement data from hx 711
-        for i in range(24):
+        for _ in range(24):
             start_counter = time.perf_counter()
             # request next bit from hx 711
             GPIO.output(self._pd_sck, True)
@@ -436,7 +438,7 @@ class HX711:
         if readings > 0 and readings < 100:
             data_list = []
             # do required number of readings
-            for i in range(readings):
+            for _ in range(readings):
                 data_list.append(self._read())
             # if readings is > 2 filter the data
             if readings > 2 and self._pstdev_filter:
@@ -455,7 +457,7 @@ class HX711:
                 # and delete the values that are out of range PSTDEV
                 max_num = data_mean + data_pstdev / 2
                 min_num = data_mean - data_pstdev / 2
-                for index, num in enumerate(data_list):
+                for num in data_list:
                     if (num > min_num and num < max_num):
                         filtered_data.append(num)
                 if self._debug_mode:
