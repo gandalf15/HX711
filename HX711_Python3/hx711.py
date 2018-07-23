@@ -443,33 +443,36 @@ class HX711:
             # if readings is > 2 filter the data
             if readings > 2 and self._pstdev_filter:
                 # calculate population STDEV and mean from the data
-                data_pstdev = stat.pstdev(data_list)
-                data_mean = stat.mean(data_list)
+                # data_pstdev = stat.pstdev(data_list)
+                # data_mean = stat.mean(data_list)
                 filtered_data = []
 
-                if data_pstdev <= 200:  # is pstdev is less than 200 it is ok
-                    self._save_last_raw_data(backup_channel, backup_gain,
-                                             data_mean)  # save last data
-                    return int(data_mean)
+                # if data_pstdev <= 200:  # is pstdev is less than 200 it is ok
+                #     self._save_last_raw_data(backup_channel, backup_gain,
+                #                              data_mean)  # save last data
+                #     return int(data_mean)
 
                 # now I know that PSTDEV is greater then wanted.
                 # determin max and min number within PSTDEV
                 # and delete the values that are out of range PSTDEV
-                max_num = data_mean + data_pstdev / 2
-                min_num = data_mean - data_pstdev / 2
+                # max_num = data_mean + data_pstdev / 2
+                # min_num = data_mean - data_pstdev / 2
                 for num in data_list:
-                    if (num > min_num and num < max_num):
+                    if (num is not False):
                         filtered_data.append(num)
                 if self._debug_mode:
                     print('data_list: {}'.format(data_list))
-                    print('filtered_data lsit: {}'.format(filtered_data))
-                    print('pstdev data: {}'.format(data_pstdev))
+                    print('filtered_data list: {}'.format(filtered_data))
+                    #print('pstdev data: {}'.format(data_pstdev))
                     print('pstdev filtered data: {}'.format(
                         stat.pstdev(filtered_data)))
-                    print('mean data_list: {}'.format(stat.mean(data_list)))
-                    print('mean filtered_data: {}'.format(
+                    print('\n\nmean data_list: {}'.format(stat.mean(data_list)))
+                    print('\n\nmean filtered_data: {}'.format(
                         stat.mean(filtered_data)))
-                f_data_mean = stat.mean(filtered_data)
+                if (len(filtered_data) > 1):
+                    f_data_mean = stat.mean(filtered_data)
+                else:
+                    return False
                 self._save_last_raw_data(backup_channel, backup_gain,
                                          f_data_mean)
                 return int(f_data_mean)
