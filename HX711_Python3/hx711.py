@@ -147,36 +147,30 @@ class HX711:
 	############################################################
 	# set_scale_ratio function sets the ratio for calculating  #
 	# weight in desired units. In order to find this ratio for #
-	# example to grams or kg. You must have known weight. 	   #
-	# Function returns True if it is ok. Else raises exception #
+	# example to grams or kg. You must have known weight.      #
 	# INPUTS: channel('A'|'B'|empty), gain_A(128|64|empty),	   #
 	# 		scale_ratio(0.0..1,..)			   #
-	# OUTPUTS: BOOL		# if True it is OK 		   #
 	############################################################
 	def set_scale_ratio(self, channel='', gain_A=0, scale_ratio=1.0):
-		if (scale_ratio > 0.0):
-			if channel == 'A' and gain_A == 128: 
+		if channel == 'A' and gain_A == 128: 
+			self._scale_ratio_A_128 = scale_ratio
+			return True
+		elif channel == 'A' and gain_A == 64:
+			self._scale_ratio_A_64 = scale_ratio
+			return True
+		elif channel == 'B':
+			self._scale_ratio_B = scale_ratio
+			return True
+		else:
+			if self._current_channel == 'A' and self._gain_channel_A == 128:
 				self._scale_ratio_A_128 = scale_ratio
 				return True
-			elif channel == 'A' and gain_A == 64:
+			elif self._current_channel == 'A' and self._gain_channel_A == 64:
 				self._scale_ratio_A_64 = scale_ratio
 				return True
-			elif channel == 'B':
+			else:
 				self._scale_ratio_B = scale_ratio
 				return True
-			else:
-				if self._current_channel == 'A' and self._gain_channel_A == 128:
-					self._scale_ratio_A_128 = scale_ratio
-					return True
-				elif self._current_channel == 'A' and self._gain_channel_A == 64:
-					self._scale_ratio_A_64 = scale_ratio
-					return True
-				else:
-					self._scale_ratio_B = scale_ratio
-					return True
-		else:
-			raise ValueError('In function "set_scale_ratio" parameter "scale_ratio" has to be '\
-					+ 'positive number.\nI have got: ' + str(scale_ratio) + '\n')
 	
 	############################################################
 	# set_pstdev_filter function is for turning on and off 	   #
