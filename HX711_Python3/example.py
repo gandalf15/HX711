@@ -127,9 +127,9 @@ try:
         5))  # now you can see many intermediate steps and values
     hx.set_debug_mode(False)
 
-    #hx.power_down()		# turns off the hx711. Low power consumption
-    #hx.power_up()			# turns on the hx711.
-    #hx.reset()			# resets the hx711 and get it ready for
+    #hx.power_down()        # turns off the hx711. Low power consumption
+    #hx.power_up()            # turns on the hx711.
+    #hx.reset()            # resets the hx711 and get it ready for
     # reading of the currently selected channel
     for i in range(2):
         # without argument default is 1

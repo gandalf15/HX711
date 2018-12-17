@@ -11,8 +11,8 @@ import RPi.GPIO as GPIO
 
 class HX711:
     """
-	HX711 represents chip for reading load cells.
-	"""
+    HX711 represents chip for reading load cells.
+    """
 
     def __init__(self,
                  dout_pin,
@@ -20,17 +20,17 @@ class HX711:
                  gain_channel_A=128,
                  select_channel='A'):
         """
-		Init a new instance of HX711
+        Init a new instance of HX711
 
-		Args:
-			dout_pin(int): Raspberry Pi pin number where the Data pin of HX711 is connected.
-			pd_sck_pin(int): Raspberry Pi pin number where the Clock pin of HX711 is connected.
-			gain_channel_A(int): Optional, by default value 128. Options (128 || 64)
-			select_channel(str): Optional, by default 'A'. Options ('A' || 'B')
+        Args:
+            dout_pin(int): Raspberry Pi pin number where the Data pin of HX711 is connected.
+            pd_sck_pin(int): Raspberry Pi pin number where the Clock pin of HX711 is connected.
+            gain_channel_A(int): Optional, by default value 128. Options (128 || 64)
+            select_channel(str): Optional, by default 'A'. Options ('A' || 'B')
 
-		Raises:
-			TypeError: if pd_sck_pin or dout_pin are not int type
-		"""
+        Raises:
+            TypeError: if pd_sck_pin or dout_pin are not int type
+        """
         if (isinstance(dout_pin, int)):
             if (isinstance(pd_sck_pin, int)):
                 self._pd_sck = pd_sck_pin
@@ -64,14 +64,14 @@ class HX711:
 
     def select_channel(self, channel):
         """
-		select_channel method evaluates if the desired channel
-		is valid and then sets the _wanted_channel variable.
+        select_channel method evaluates if the desired channel
+        is valid and then sets the _wanted_channel variable.
 
-		Args:
-			channel(str): the channel to select. Options ('A' || 'B')
-		Raises:
-			ValueError: if channel is not 'A' or 'B'
-		"""
+        Args:
+            channel(str): the channel to select. Options ('A' || 'B')
+        Raises:
+            ValueError: if channel is not 'A' or 'B'
+        """
         if (channel == 'A'):
             self._wanted_channel = 'A'
         elif (channel == 'B'):
@@ -86,14 +86,14 @@ class HX711:
 
     def set_gain_A(self, gain):
         """
-		set_gain_A method sets gain for channel A.
-		
-		Args:
-			gain(int): Gain for channel A (128 || 64)
-		
-		Raises:
-			ValueError: if gain is different than 128 or 64
-		"""
+        set_gain_A method sets gain for channel A.
+        
+        Args:
+            gain(int): Gain for channel A (128 || 64)
+        
+        Raises:
+            ValueError: if gain is different than 128 or 64
+        """
         if gain == 128:
             self._gain_channel_A = gain
         elif gain == 64:
@@ -108,19 +108,19 @@ class HX711:
 
     def zero(self, readings=10):
         """
-		zero is method which sets the current data as
-		an offset for particulart channel. It can be used for
-		subtracting the weight of the packaging. Also known as tare.
+        zero is method which sets the current data as
+        an offset for particulart channel. It can be used for
+        subtracting the weight of the packaging. Also known as tare.
 
-		Args:
-			readings(int): Number of readings for mean. Allowed values 1..99
+        Args:
+            readings(int): Number of readings for mean. Allowed values 1..99
 
-		Raises:
-			ValueError: if readings are not in range 1..99
+        Raises:
+            ValueError: if readings are not in range 1..99
 
-		Returns:
-			bool: True when it is ok. False otherwise.
-		"""
+        Returns:
+            bool: True when it is ok. False otherwise.
+        """
         if readings > 0 and readings < 100:
             result = self.get_raw_data_mean(readings)
             if result != False:
@@ -154,18 +154,18 @@ class HX711:
 
     def set_offset(self, offset, channel='', gain_A=0):
         """
-		set offset method sets desired offset for specific
-		channel and gain. Optional, by default it sets offset for current
-		channel and gain.
-		
-		Args:
-			offset(int): specific offset for channel
-			channel(str): Optional, by default it is the current channel.
-				Or use these options ('a'|| 'A' || 'b' || 'B')
-		
-		Raises:
-			TypeError: if offset is not int type
-		"""
+        set offset method sets desired offset for specific
+        channel and gain. Optional, by default it sets offset for current
+        channel and gain.
+        
+        Args:
+            offset(int): specific offset for channel
+            channel(str): Optional, by default it is the current channel.
+                Or use these options ('a'|| 'A' || 'b' || 'B')
+        
+        Raises:
+            TypeError: if offset is not int type
+        """
         if isinstance(offset, int):
             if channel == 'A' and gain_A == 128:
                 self._offset_A_128 = offset
@@ -192,18 +192,18 @@ class HX711:
 
     def set_scale_ratio(self, scale_ratio, channel='', gain_A=0):
         """
-		set_scale_ratio method sets the ratio for calculating
-		weight in desired units. In order to find this ratio for
-		example to grams or kg. You must have known weight.
+        set_scale_ratio method sets the ratio for calculating
+        weight in desired units. In order to find this ratio for
+        example to grams or kg. You must have known weight.
 
-		Args:
-			scale_ratio(float): number > 0.0 that is used for
-				conversion to weight units
-			channel(str): Optional, by default it is the current channel.
-				Or use these options ('a'|| 'A' || 'b' || 'B')
-			gain_A(int): Optional, by default it is the current channel.
-				Or use these options (128 || 64)
-		"""
+        Args:
+            scale_ratio(float): number > 0.0 that is used for
+                conversion to weight units
+            channel(str): Optional, by default it is the current channel.
+                Or use these options ('a'|| 'A' || 'b' || 'B')
+            gain_A(int): Optional, by default it is the current channel.
+                Or use these options (128 || 64)
+        """
         if channel == 'A' and gain_A == 128:
             self._scale_ratio_A_128 = scale_ratio
             return
@@ -226,14 +226,14 @@ class HX711:
 
     def set_pstdev_filter(self, flag=True):
         """
-		set_pstdev_filter method is for turning on and off
-		population standard deviation filter.
-		Args:
-			flag(bool): True turns on the filter. False turns it off.
-		
-		Raises:
-			ValueError: if flag is not bool type
-		"""
+        set_pstdev_filter method is for turning on and off
+        population standard deviation filter.
+        Args:
+            flag(bool): True turns on the filter. False turns it off.
+        
+        Raises:
+            ValueError: if flag is not bool type
+        """
         if flag == False:
             self._pstdev_filter = False
             if self._debug_mode:
@@ -251,15 +251,15 @@ class HX711:
 
     def set_debug_mode(self, flag=False):
         """
-		set_debug_mode method is for turning on and off
-		debug mode.
-		
-		Args:
-			flag(bool): True turns on the debug mode. False turns it off.
-		
-		Raises:
-			ValueError: if fag is not bool type
-		"""
+        set_debug_mode method is for turning on and off
+        debug mode.
+        
+        Args:
+            flag(bool): True turns on the debug mode. False turns it off.
+        
+        Raises:
+            ValueError: if fag is not bool type
+        """
         if flag == False:
             self._debug_mode = False
             print('Debug mode DISABLED')
@@ -275,14 +275,14 @@ class HX711:
 
     def _save_last_raw_data(self, channel, gain_A, data):
         """
-		_save_last_raw_data saves the last raw data for specific channel and gain.
-		
-		Args:
-			channel(str):
-			gain_A(int):
-			data(int):
-		Returns: bool True if ok. else False
-		"""
+        _save_last_raw_data saves the last raw data for specific channel and gain.
+        
+        Args:
+            channel(str):
+            gain_A(int):
+            data(int):
+        Returns: bool True if ok. else False
+        """
         if channel == 'A' and gain_A == 128:
             self._last_raw_data_A_128 = data
         elif channel == 'A' and gain_A == 64:
@@ -294,10 +294,10 @@ class HX711:
 
     def _ready(self):
         """
-		_ready method check if data is prepared for reading from HX711
+        _ready method check if data is prepared for reading from HX711
 
-		Returns: bool True if ready else False when not ready		
-		"""
+        Returns: bool True if ready else False when not ready        
+        """
         # if DOUT pin is low data is ready for reading
         if GPIO.input(self._dout) == 0:
             return True
@@ -306,17 +306,17 @@ class HX711:
 
     def _set_channel_gain(self, num):
         """
-		_set_channel_gain is called only from _read method.
-		It finishes the data transmission for HX711 which sets
-		the next required gain and channel.
+        _set_channel_gain is called only from _read method.
+        It finishes the data transmission for HX711 which sets
+        the next required gain and channel.
 
-		Args:
-			num(int): how many ones it sends to HX711
-				options (1 || 2 || 3)
-		
-		Returns: bool True if HX711 is ready for the next reading
-			False if HX711 is not ready for the next reading
-		"""
+        Args:
+            num(int): how many ones it sends to HX711
+                options (1 || 2 || 3)
+        
+        Returns: bool True if HX711 is ready for the next reading
+            False if HX711 is not ready for the next reading
+        """
         for _ in range(num):
             start_counter = time.perf_counter()
             GPIO.output(self._pd_sck, True)
@@ -338,12 +338,12 @@ class HX711:
 
     def _read(self):
         """
-		_read method reads bits from hx711, converts to INT
-		and validate the data.
-		
-		Returns: (bool || int) if it returns False then it is false reading.
-			if it returns int then the reading was correct
-		"""
+        _read method reads bits from hx711, converts to INT
+        and validate the data.
+        
+        Returns: (bool || int) if it returns False then it is false reading.
+            if it returns int then the reading was correct
+        """
         GPIO.output(self._pd_sck, False)  # start by setting the pd_sck to 0
         ready_counter = 0
         while (not self._ready() and ready_counter <= 40):
@@ -420,17 +420,17 @@ class HX711:
 
     def get_raw_data_mean(self, readings=1):
         """
-		get_raw_data_mean returns mean value of readings.
+        get_raw_data_mean returns mean value of readings.
 
-		Args:
-			readings(int): Number of readings for mean. Range from 1..99
+        Args:
+            readings(int): Number of readings for mean. Range from 1..99
 
-		Raises:
-			ValueError: if reading is not in range 1..99
+        Raises:
+            ValueError: if reading is not in range 1..99
 
-		Returns: (bool || int) if False then reading is invalid.
-			if it returns int then reading is valid
-		"""
+        Returns: (bool || int) if False then reading is invalid.
+            if it returns int then reading is valid
+        """
         # do backup of current channel befor reading for later use
         backup_channel = self._current_channel
         backup_gain = self._gain_channel_A
@@ -487,15 +487,15 @@ class HX711:
 
     def get_data_mean(self, readings=1):
         """
-		get_data_mean returns average value of readings minus
-		offset for the channel which was read.
+        get_data_mean returns average value of readings minus
+        offset for the channel which was read.
 
-		Args:
-			readings(int): Number of readings for mean
+        Args:
+            readings(int): Number of readings for mean
 
-		Returns: (bool || int) False if reading was not ok.
-			If it returns int then reading was ok
-		"""
+        Returns: (bool || int) False if reading was not ok.
+            If it returns int then reading was ok
+        """
         result = self.get_raw_data_mean(readings)
         if result != False:
             if self._current_channel == 'A' and self._gain_channel_A == 128:
@@ -509,16 +509,16 @@ class HX711:
 
     def get_weight_mean(self, readings=1):
         """
-		get_weight_mean returns average value of readings minus
-		offset divided by scale ratio for a specific channel
-		and gain.
+        get_weight_mean returns average value of readings minus
+        offset divided by scale ratio for a specific channel
+        and gain.
 
-		Args:
-			readings(int): Number of readings for mean
+        Args:
+            readings(int): Number of readings for mean
 
-		Returns: (bool || float) False if reading was not ok.
-			If it returns float then reading was ok
-		"""
+        Returns: (bool || float) False if reading was not ok.
+            If it returns float then reading was ok
+        """
         result = self.get_raw_data_mean(readings)
         if result != False:
             if self._current_channel == 'A' and self._gain_channel_A == 128:
@@ -534,39 +534,39 @@ class HX711:
 
     def get_current_channel(self):
         """
-		get current channel returns the value of currently chosen channel.
+        get current channel returns the value of currently chosen channel.
 
-		Returns: ('A' || 'B')
-		"""
+        Returns: ('A' || 'B')
+        """
         return self._current_channel
 
     def get_pstdev_filter_status(self):
         """
-		get pstdev filter status returns status of pstdev filter settings.
+        get pstdev filter status returns status of pstdev filter settings.
 
-		Returns: True if filter is turned on. Else it returns False
-		"""
+        Returns: True if filter is turned on. Else it returns False
+        """
         return self._pstdev_filter
 
     def get_current_gain_A(self):
         """
-		get current gain A returns the value of current gain on channel A
+        get current gain A returns the value of current gain on channel A
 
-		Returns: (128 || 64) current gain on channel A
-		"""
+        Returns: (128 || 64) current gain on channel A
+        """
         return self._gain_channel_A
 
     def get_last_raw_data(self, channel='', gain_A=0):
         """
-		get last raw data returns the last read data for a
-		channel and gain. By default for currently chosen one.
+        get last raw data returns the last read data for a
+        channel and gain. By default for currently chosen one.
 
-		Args:
-			channel(str): select for which channel ('A' || 'B')
-			gain_A(int): select for which gain (128 || 64)
+        Args:
+            channel(str): select for which channel ('A' || 'B')
+            gain_A(int): select for which gain (128 || 64)
 
-		Returns: int the last data that was received for the chosen channel and gain
-		"""
+        Returns: int the last data that was received for the chosen channel and gain
+        """
         if channel == 'A' and gain_A == 128:
             return self._last_raw_data_A_128
         elif channel == 'A' and gain_A == 64:
@@ -583,15 +583,15 @@ class HX711:
 
     def get_current_offset(self, channel='', gain_A=0):
         """
-		get current offset returns the current offset for
-		a particular channel and gain. By default the current one.
+        get current offset returns the current offset for
+        a particular channel and gain. By default the current one.
 
-		Args:
-			channel(str): select for which channel ('A' || 'B')
-			gain_A(int): select for which gain (128 || 64)
+        Args:
+            channel(str): select for which channel ('A' || 'B')
+            gain_A(int): select for which gain (128 || 64)
 
-		Returns: int the offset for the chosen channel and gain
-		"""
+        Returns: int the offset for the chosen channel and gain
+        """
         if channel == 'A' and gain_A == 128:
             return self._offset_A_128
         elif channel == 'A' and gain_A == 64:
@@ -608,16 +608,16 @@ class HX711:
 
     def get_current_scale_ratio(self, channel='', gain_A=0):
         """
-		get current scale ratio returns the current scale ratio
-		for a particular channel and gain. By default
-		the current one.
+        get current scale ratio returns the current scale ratio
+        for a particular channel and gain. By default
+        the current one.
 
-		Args:
-			channel(str): select for which channel ('A' || 'B')
-			gain_A(int): select for which gain (128 || 64)
+        Args:
+            channel(str): select for which channel ('A' || 'B')
+            gain_A(int): select for which gain (128 || 64)
 
-		Returns: int the scale ratio for the chosen channel and gain
-		"""
+        Returns: int the scale ratio for the chosen channel and gain
+        """
         if channel == 'A' and gain_A == 128:
             return self._scale_ratio_A_128
         elif channel == 'A' and gain_A == 64:
@@ -634,26 +634,26 @@ class HX711:
 
     def power_down(self):
         """
-		power down method turns off the hx711.
-		"""
+        power down method turns off the hx711.
+        """
         GPIO.output(self._pd_sck, False)
         GPIO.output(self._pd_sck, True)
         time.sleep(0.01)
 
     def power_up(self):
         """
-		power up function turns on the hx711.
-		"""
+        power up function turns on the hx711.
+        """
         GPIO.output(self._pd_sck, False)
         time.sleep(0.01)
 
     def reset(self):
         """
-		reset method resets the hx711 and prepare it for the next reading.
+        reset method resets the hx711 and prepare it for the next reading.
 
-		Returns: bool True when it is ready for reading.
-			Else it is not and it returns False
-		"""
+        Returns: bool True when it is ready for reading.
+            Else it is not and it returns False
+        """
         self.power_down()
         self.power_up()
         result = self.get_raw_data_mean(6)
