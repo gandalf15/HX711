@@ -37,25 +37,25 @@ class HX711:
                 self._dout = dout_pin
             else:
                 raise TypeError('pd_sck_pin must be type int. '
-                                'I have got pd_sck_pin: {}'.format(pd_sck_pin))
+                                'Received pd_sck_pin: {}'.format(pd_sck_pin))
         else:
             raise TypeError('dout_pin must be type int. '
-                            'I have got dout_pin: {}'.format(dout_pin))
+                            'Received dout_pin: {}'.format(dout_pin))
 
         self._gain_channel_A = 0
-        self._offset_A_128 = 0
-        self._offset_A_64 = 0
-        self._offset_B = 0
+        self._offset_A_128 = 0  # offset for channel A and gain 128
+        self._offset_A_64 = 0  # offset for channel A and gain 64
+        self._offset_B = 0  # offset for channel B
         self._last_raw_data_A_128 = 0
         self._last_raw_data_A_64 = 0
         self._last_raw_data_B = 0
         self._wanted_channel = ''
         self._current_channel = ''
-        self._scale_ratio_A_128 = 1
-        self._scale_ratio_A_64 = 1
-        self._scale_ratio_B = 1
+        self._scale_ratio_A_128 = 1  # scale ratio for channel A and gain 128
+        self._scale_ratio_A_64 = 1  # scale ratio for channel A and gain 64
+        self._scale_ratio_B = 1  # scale ratio for channel B
         self._debug_mode = False
-        self._pstdev_filter = True
+        self._data_filter = outliers_filter  # default it is used outliers_filter
 
         GPIO.setup(self._pd_sck, GPIO.OUT)  # pin _pd_sck is output only
         GPIO.setup(self._dout, GPIO.IN)  # pin _dout is input only
@@ -72,13 +72,14 @@ class HX711:
         Raises:
             ValueError: if channel is not 'A' or 'B'
         """
+        channel = channel.capitalize()
         if (channel == 'A'):
             self._wanted_channel = 'A'
         elif (channel == 'B'):
             self._wanted_channel = 'B'
         else:
-            raise ValueError('channel has to be "A" or "B". '
-                             'I have got: {}'.format(channel))
+            raise ValueError('Parameter "channel" has to be "A" or "B". '
+                             'Received: {}'.format(channel))
         # after changing channel or gain it has to wait 50 ms to allow adjustment.
         # the data before is garbage and cannot be used.
         self._read()
@@ -100,15 +101,15 @@ class HX711:
             self._gain_channel_A = gain
         else:
             raise ValueError('gain has to be 128 or 64. '
-                             'I have got: {}'.format(gain))
+                             'Received: {}'.format(gain))
         # after changing channel or gain it has to wait 50 ms to allow adjustment.
         # the data before is garbage and cannot be used.
         self._read()
         time.sleep(0.5)
 
-    def zero(self, readings=10):
+    def zero(self, readings=30):
         """
-        zero is method which sets the current data as
+        zero is a method which sets the current data as
         an offset for particulart channel. It can be used for
         subtracting the weight of the packaging. Also known as tare.
 
@@ -118,8 +119,7 @@ class HX711:
         Raises:
             ValueError: if readings are not in range 1..99
 
-        Returns:
-            bool: True when it is ok. False otherwise.
+        Returns: True if error occured.
         """
         if readings > 0 and readings < 100:
             result = self.get_raw_data_mean(readings)
@@ -127,30 +127,30 @@ class HX711:
                 if (self._current_channel == 'A' and
                         self._gain_channel_A == 128):
                     self._offset_A_128 = result
-                    return True
+                    return False
                 elif (self._current_channel == 'A' and
                       self._gain_channel_A == 64):
                     self._offset_A_64 = result
-                    return True
+                    return False
                 elif (self._current_channel == 'B'):
                     self._offset_B = result
-                    return True
+                    return False
                 else:
                     if self._debug_mode:
                         print('Cannot zero() channel and gain mismatch.\n'
                               'current channel: {}\n'
                               'gain A: {}\n'.format(self._current_channel,
                                                     self._gain_channel_A))
-                    return False
+                    return True
             else:
                 if self._debug_mode:
                     print('From method "zero()".\n'
                           'get_raw_data_mean(readings) returned False.\n')
-                return False
+                return True
         else:
-            raise ValueError('In method "zero()" parameter "readings" '
+            raise ValueError('Parameter "readings" '
                              'can be in range 1 up to 99. '
-                             'I have got: {}'.format(readings))
+                             'Received: {}'.format(readings))
 
     def set_offset(self, offset, channel='', gain_A=0):
         """
@@ -161,11 +161,13 @@ class HX711:
         Args:
             offset(int): specific offset for channel
             channel(str): Optional, by default it is the current channel.
-                Or use these options ('a'|| 'A' || 'b' || 'B')
+                Or use these options ('A' || 'B')
         
         Raises:
+            ValueError: if channel is not ('A' || 'B' || '')
             TypeError: if offset is not int type
         """
+        channel = channel.capitalize()
         if isinstance(offset, int):
             if channel == 'A' and gain_A == 128:
                 self._offset_A_128 = offset
@@ -176,7 +178,7 @@ class HX711:
             elif channel == 'B':
                 self._offset_B = offset
                 return
-            else:
+            elif channel == '':
                 if self._current_channel == 'A' and self._gain_channel_A == 128:
                     self._offset_A_128 = offset
                     return
@@ -186,9 +188,12 @@ class HX711:
                 else:
                     self._offset_B = offset
                     return
+            else:
+                raise ValueError('Parameter "channel" has to be "A" or "B". '
+                                 'Received: {}'.format(channel))
         else:
-            raise TypeError('Parameter "offset" has to be integer. '\
-             + 'I have got: ' + str(offset) + '\n')
+            raise TypeError('Parameter "offset" has to be integer. '
+                            'Received: ' + str(offset) + '\n')
 
     def set_scale_ratio(self, scale_ratio, channel='', gain_A=0):
         """
@@ -203,51 +208,54 @@ class HX711:
                 Or use these options ('a'|| 'A' || 'b' || 'B')
             gain_A(int): Optional, by default it is the current channel.
                 Or use these options (128 || 64)
+        Raises:
+            ValueError: if channel is not ('A' || 'B' || '')
+            TypeError: if offset is not int type
         """
-        if channel == 'A' and gain_A == 128:
-            self._scale_ratio_A_128 = scale_ratio
-            return
-        elif channel == 'A' and gain_A == 64:
-            self._scale_ratio_A_64 = scale_ratio
-            return
-        elif channel == 'B':
-            self._scale_ratio_B = scale_ratio
-            return
-        else:
-            if self._current_channel == 'A' and self._gain_channel_A == 128:
+        channel = channel.capitalize()
+        if isinstance(gain_A, int):
+            if channel == 'A' and gain_A == 128:
                 self._scale_ratio_A_128 = scale_ratio
                 return
-            elif self._current_channel == 'A' and self._gain_channel_A == 64:
+            elif channel == 'A' and gain_A == 64:
                 self._scale_ratio_A_64 = scale_ratio
                 return
-            else:
+            elif channel == 'B':
                 self._scale_ratio_B = scale_ratio
                 return
+            elif channel == '':
+                if self._current_channel == 'A' and self._gain_channel_A == 128:
+                    self._scale_ratio_A_128 = scale_ratio
+                    return
+                elif self._current_channel == 'A' and self._gain_channel_A == 64:
+                    self._scale_ratio_A_64 = scale_ratio
+                    return
+                else:
+                    self._scale_ratio_B = scale_ratio
+                    return
+            else:
+                raise ValueError('Parameter "channel" has to be "A" or "B". '
+                                 'received: {}'.format(channel))
+        else:
+            raise TypeError('Parameter "gain_A" has to be integer. '
+                            'Received: ' + str(gain_A) + '\n')
 
-    def set_pstdev_filter(self, flag=True):
+    def set_data_filter(self, data_filter):
         """
-        set_pstdev_filter method is for turning on and off
-        population standard deviation filter.
+        set_data_filter method sets data filter that is passed as an argument.
+
         Args:
-            flag(bool): True turns on the filter. False turns it off.
+            data_filter(data_filter): Data filter that takes list of int numbers and
+                returns a list of filtered int numbers.
         
         Raises:
-            ValueError: if flag is not bool type
+            TypeError: if filter is not a function.
         """
-        if flag == False:
-            self._pstdev_filter = False
-            if self._debug_mode:
-                print('Population standard deviation filter DISABLED')
-            return True
-        elif flag == True:
-            self._pstdev_filter = True
-            if self._debug_mode:
-                print('Population standatd deviation filter ENABLED')
-            return True
+        if callable(data_filter):
+            self._data_filter = data_filter
         else:
-            raise ValueError(
-                'In method "set_pstdev_filter" parameter "flag" can be only '
-                'BOOL value.\nI have got: {}'.format(flag))
+            raise TypeError('Parameter "data_filter" must be a function. '
+                            'Received: {}'.format(data_filter))
 
     def set_debug_mode(self, flag=False):
         """
@@ -269,9 +277,8 @@ class HX711:
             print('Debug mode ENABLED')
             return
         else:
-            raise ValueError(
-                'In function "set_debug_mode" parameter "flag" can '
-                'be only BOOL value.\nI have got: {}'.format(flag))
+            raise ValueError('Parameter "flag" can be only BOOL value. '
+                             'Received: {}'.format(flag))
 
     def _save_last_raw_data(self, channel, gain_A, data):
         """
@@ -281,7 +288,7 @@ class HX711:
             channel(str):
             gain_A(int):
             data(int):
-        Returns: bool True if ok. else False
+        Returns: False if error occured
         """
         if channel == 'A' and gain_A == 128:
             self._last_raw_data_A_128 = data
@@ -405,9 +412,8 @@ class HX711:
 
         # calculate int from 2's complement
         signed_data = 0
-        if (
-                data_in & 0x800000
-        ):  # 0b1000 0000 0000 0000 0000 0000 check if the sign bit is 1. Negative number.
+        # 0b1000 0000 0000 0000 0000 0000 check if the sign bit is 1. Negative number.
+        if (data_in & 0x800000):
             signed_data = -(
                 (data_in ^ 0xffffff) + 1)  # convert from 2's complement to int
         else:  # else do not do anything the value is positive number
@@ -418,15 +424,12 @@ class HX711:
 
         return signed_data
 
-    def get_raw_data_mean(self, readings=1):
+    def get_raw_data_mean(self, readings=30):
         """
         get_raw_data_mean returns mean value of readings.
 
         Args:
-            readings(int): Number of readings for mean. Range from 1..99
-
-        Raises:
-            ValueError: if reading is not in range 1..99
+            readings(int): Number of readings for mean.
 
         Returns: (bool || int) if False then reading is invalid.
             if it returns int then reading is valid
@@ -434,58 +437,24 @@ class HX711:
         # do backup of current channel befor reading for later use
         backup_channel = self._current_channel
         backup_gain = self._gain_channel_A
-        # check if readings is in required range
-        if readings > 0 and readings < 100:
-            data_list = []
-            # do required number of readings
-            for _ in range(readings):
-                data_list.append(self._read())
-            # if readings is > 2 filter the data
-            if readings > 2 and self._pstdev_filter:
-                # calculate population STDEV and mean from the data
-                # data_pstdev = stat.pstdev(data_list)
-                # data_mean = stat.mean(data_list)
-                filtered_data = []
-
-                # if data_pstdev <= 200:  # is pstdev is less than 200 it is ok
-                #     self._save_last_raw_data(backup_channel, backup_gain,
-                #                              data_mean)  # save last data
-                #     return int(data_mean)
-
-                # now I know that PSTDEV is greater then wanted.
-                # determin max and min number within PSTDEV
-                # and delete the values that are out of range PSTDEV
-                # max_num = data_mean + data_pstdev / 2
-                # min_num = data_mean - data_pstdev / 2
-                for num in data_list:
-                    if (num is not False):
-                        filtered_data.append(num)
-                if self._debug_mode:
-                    print('data_list: {}'.format(data_list))
-                    print('filtered_data list: {}'.format(filtered_data))
-                    #print('pstdev data: {}'.format(data_pstdev))
-                    print('pstdev filtered data: {}'.format(
-                        stat.pstdev(filtered_data)))
-                    print('\n\nmean data_list: {}'.format(stat.mean(data_list)))
-                    print('\n\nmean filtered_data: {}'.format(
-                        stat.mean(filtered_data)))
-                if (len(filtered_data) > 1):
-                    f_data_mean = stat.mean(filtered_data)
-                else:
-                    return False
-                self._save_last_raw_data(backup_channel, backup_gain,
-                                         f_data_mean)
-                return int(f_data_mean)
-            else:
-                data_mean = stat.mean(data_list)
-                self._save_last_raw_data(backup_channel, backup_gain, data_mean)
-                return int(data_mean)
+        data_list = []
+        # do required number of readings
+        for _ in range(readings):
+            data_list.append(self._read())
+        data_mean = False
+        if readings > 2 and self._data_filter:
+            filtered_data = self._data_filter(data_list)
+            if self._debug_mode:
+                print('data_list: {}'.format(data_list))
+                print('filtered_data list: {}'.format(filtered_data))
+                print('data_mean:', stat.mean(filtered_data))
+            data_mean = stat.mean(filtered_data)
         else:
-            raise ValueError(
-                'Method "get_raw_data_mean" parameter "readings" has '
-                'to be in range 1 up to 99.\n I have got: {}'.format(readings))
+            data_mean = stat.mean(data_list)
+        self._save_last_raw_data(backup_channel, backup_gain, data_mean)
+        return int(data_mean)
 
-    def get_data_mean(self, readings=1):
+    def get_data_mean(self, readings=30):
         """
         get_data_mean returns average value of readings minus
         offset for the channel which was read.
@@ -507,7 +476,7 @@ class HX711:
         else:
             return False
 
-    def get_weight_mean(self, readings=1):
+    def get_weight_mean(self, readings=30):
         """
         get_weight_mean returns average value of readings minus
         offset divided by scale ratio for a specific channel
@@ -534,19 +503,19 @@ class HX711:
 
     def get_current_channel(self):
         """
-        get current channel returns the value of currently chosen channel.
+        get current channel returns the value of current channel.
 
         Returns: ('A' || 'B')
         """
         return self._current_channel
 
-    def get_pstdev_filter_status(self):
+    def get_data_filter(self):
         """
-        get pstdev filter status returns status of pstdev filter settings.
+        get data filter.
 
-        Returns: True if filter is turned on. Else it returns False
+        Returns: self._data_filter
         """
-        return self._pstdev_filter
+        return self._data_filter
 
     def get_current_gain_A(self):
         """
@@ -559,27 +528,37 @@ class HX711:
     def get_last_raw_data(self, channel='', gain_A=0):
         """
         get last raw data returns the last read data for a
-        channel and gain. By default for currently chosen one.
+        channel and gain. By default for current one.
 
         Args:
-            channel(str): select for which channel ('A' || 'B')
-            gain_A(int): select for which gain (128 || 64)
+            channel(str): select channel ('A' || 'B'). If not then it returns the current one.
+            gain_A(int): select gain (128 || 64). If not then it returns the current one.
+        
+        Raises:
+            ValueError: if channel is not ('A' || 'B' || '') or gain_A is not (128 || 64 || 0)
+                '' and 0 is default value.
 
         Returns: int the last data that was received for the chosen channel and gain
         """
+        channel = channel.capitalize()
         if channel == 'A' and gain_A == 128:
             return self._last_raw_data_A_128
         elif channel == 'A' and gain_A == 64:
             return self._last_raw_data_A_64
         elif channel == 'B':
             return self._last_raw_data_B
-        else:
+        elif channel == '':
             if self._current_channel == 'A' and self._gain_channel_A == 128:
                 return self._last_raw_data_A_128
             elif self._current_channel == 'A' and self._gain_channel_A == 64:
                 return self._last_raw_data_A_64
             else:
                 return self._last_raw_data_B
+        else:
+            raise ValueError(
+                'Parameter "channel" has to be "A" or "B". '
+                'Received: {} \nParameter "gain_A" has to be 128 or 64. Received {}'
+                .format(channel, gain_A))
 
     def get_current_offset(self, channel='', gain_A=0):
         """
@@ -589,22 +568,32 @@ class HX711:
         Args:
             channel(str): select for which channel ('A' || 'B')
             gain_A(int): select for which gain (128 || 64)
+        
+        Raises:
+            ValueError: if channel is not ('A' || 'B' || '') or gain_A is not (128 || 64 || 0)
+                '' and 0 is default value.
 
         Returns: int the offset for the chosen channel and gain
         """
+        channel = channel.capitalize()
         if channel == 'A' and gain_A == 128:
             return self._offset_A_128
         elif channel == 'A' and gain_A == 64:
             return self._offset_A_64
         elif channel == 'B':
             return self._offset_B
-        else:
+        elif channel == '':
             if self._current_channel == 'A' and self._gain_channel_A == 128:
                 return self._offset_A_128
             elif self._current_channel == 'A' and self._gain_channel_A == 64:
                 return self._offset_A_64
             else:
                 return self._offset_B
+        else:
+            raise ValueError(
+                'Parameter "channel" has to be "A" or "B". '
+                'Received: {} \nParameter "gain_A" has to be 128 or 64. Received {}'
+                .format(channel, gain_A))
 
     def get_current_scale_ratio(self, channel='', gain_A=0):
         """
@@ -618,19 +607,25 @@ class HX711:
 
         Returns: int the scale ratio for the chosen channel and gain
         """
+        channel = channel.capitalize()
         if channel == 'A' and gain_A == 128:
             return self._scale_ratio_A_128
         elif channel == 'A' and gain_A == 64:
             return self._scale_ratio_A_64
         elif channel == 'B':
             return self._scale_ratio_B
-        else:
+        elif channel == '':
             if self._current_channel == 'A' and self._gain_channel_A == 128:
                 return self._scale_ratio_A_128
             elif self._current_channel == 'A' and self._gain_channel_A == 64:
                 return self._scale_ratio_A_64
             else:
                 return self._scale_ratio_B
+        else:
+            raise ValueError(
+                'Parameter "channel" has to be "A" or "B". '
+                'Received: {} \nParameter "gain_A" has to be 128 or 64. Received {}'
+                .format(channel, gain_A))
 
     def power_down(self):
         """
@@ -651,13 +646,51 @@ class HX711:
         """
         reset method resets the hx711 and prepare it for the next reading.
 
-        Returns: bool True when it is ready for reading.
-            Else it is not and it returns False
+        Returns: True if error encountered
         """
         self.power_down()
         self.power_up()
         result = self.get_raw_data_mean(6)
-        if result != False:
-            return True
-        else:
+        if result:
             return False
+        else:
+            return True
+
+
+def outliers_filter(data_list):
+    """
+    It filters out outliers from the provided list of int.
+    Median is used as an estimator of outliers.
+
+    Args:
+        data_list([int]): List of int. It can contain Bool False that is removed.
+    
+    Returns: list of filtered data. Excluding outliers.
+    """
+    data = []
+    for num in data_list:
+        if num:
+            data.append(num)
+    # set 'm' to lower value to remove more outliers
+    # set 'm' to higher value to keep more data samples (also some outliers)
+    m = 2.0
+    # It calculates the absolute distance to the median.
+    # Then it scales the distances by their median value (again)
+    # so they are on a relative scale to 'm'.
+    data_median = stat.median(data)
+    abs_distance = []
+    for num in data:
+        abs_distance.append(abs(num - data_median))
+    mdev = stat.median(abs_distance)
+    s = []
+    if mdev:
+        for num in abs_distance:
+            s.append(num / mdev)
+    else:
+        # mdev is 0. Therefore all data samples in the list data have the same value.
+        return data
+    filtered_data = []
+    for i in range(len(data)):
+        if s[i] < m:
+            filtered_data.append(data[i])
+    return filtered_data
