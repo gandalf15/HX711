@@ -652,9 +652,9 @@ class HX711:
         self.power_up()
         result = self.get_raw_data_mean(6)
         if result:
-            return False
-        else:
             return True
+        else:
+            return False
 
 
 def outliers_filter(data_list):
