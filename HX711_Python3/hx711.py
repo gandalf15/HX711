@@ -18,8 +18,7 @@ class HX711:
                  dout_pin,
                  pd_sck_pin,
                  gain_channel_A=128,
-                 select_channel='A',
-                 _debug_mode=False):
+                 select_channel='A'):
         """
         Init a new instance of HX711
 
@@ -55,7 +54,7 @@ class HX711:
         self._scale_ratio_A_128 = 1  # scale ratio for channel A and gain 128
         self._scale_ratio_A_64 = 1  # scale ratio for channel A and gain 64
         self._scale_ratio_B = 1  # scale ratio for channel B
-        self._debug_mode = _debug_mode
+        self._debug_mode = False
         self._data_filter = self.outliers_filter  # default it is used outliers_filter
 
         GPIO.setup(self._pd_sck, GPIO.OUT)  # pin _pd_sck is output only
@@ -399,8 +398,8 @@ class HX711:
             else:
                 self._current_channel = 'B'  # else set current channel variable
 
-        if self._debug_mode:  # print 2's complement value
-            print('Binary value as received: {}'.format(bin(data_in)))
+        # if self._debug_mode:  # print 2's complement value
+        #     print('Binary value as received: {}'.format(bin(data_in)))
 
         #check if data is valid
         if (data_in == 0x7fffff
@@ -420,8 +419,8 @@ class HX711:
         else:  # else do not do anything the value is positive number
             signed_data = data_in
 
-        if self._debug_mode:
-            print('Converted 2\'s complement value: {}'.format(signed_data))
+        # if self._debug_mode:
+        #     print('Converted 2\'s complement value: {}'.format(signed_data))
 
         return signed_data
 
@@ -445,6 +444,8 @@ class HX711:
         data_mean = False
         if readings > 2 and self._data_filter:
             filtered_data = self._data_filter(data_list)
+            if not filtered_data:
+                return False
             if self._debug_mode:
                 print('data_list: {}'.format(data_list))
                 print('filtered_data list: {}'.format(filtered_data))
@@ -662,32 +663,34 @@ class HX711:
         """
         It filters out outliers from the provided list of int.
         Median is used as an estimator of outliers.
+        Outliers are compared to the standard deviation from the median
 
         Args:
             data_list([int]): List of int. It can contain Bool False that is removed.
         
         Returns: list of filtered data. Excluding outliers.
         """
-        data = [num for num in data_list if type(num) == float or type(num) == int]
-        # set 'threshold' to lower value to remove more outliers
-        # set 'threshold' to higher value to keep more data samples (also some outliers)
-        threshold = 2.0
-        # It calculates the absolute distance to the median.
-        # Then it scales the distances by their median value (again)
-        # so they are on a relative scale to 'mdev'.
-        data_median = stat.median(data)
-        abs_distance = [(abs(num - data_median)) for num in data]
-        median_dist = stat.median(abs_distance)
-        if median_dist:
-            s = [(num / median_dist) for num in abs_distance]
+        data = [num for num in data_list if num != -1 and num != False and num != True] # filter out -1 which indicates no signal
+        if not data:
+            return []
+
+        threshold = 1.0
+
+        median = stat.median(data)
+        dists_from_median = [(abs(measurement - median)) for measurement in data]
+        stdev_dist = stat.stdev(dists_from_median)
+        median_dist = stat.median(dists_from_median)
+        if stdev_dist:
+            ratios_to_stdev = [(dist / stdev_dist) for dist in dists_from_median]
         else:
             # mdev is 0. Therefore return just the median
-            return [data_median]
+            return [median]
         filtered_data = []
         for i in range(len(data)):
-            if s[i] < threshold:
+            if ratios_to_stdev[i] < threshold:
                 filtered_data.append(data[i])
         if self._debug_mode:
-            print(data, 'raw data')
-            print(filtered_data, 'filtered_data')
+            print('raw data', data_list)
+            print('ratios to stdev', ratios_to_stdev)
+            print('filtered_data', filtered_data)
         return filtered_data
