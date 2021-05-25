@@ -671,7 +671,9 @@ class HX711:
         
         Returns: list of filtered data. Excluding outliers.
         """
-        data = [num for num in data_list if num != -1 and num != False and num != True] # filter out -1 which indicates no signal
+        # filter out -1 which indicates no signal
+        # filter out booleans
+        data = [num for num in data_list if (num != -1 and num != False and num != True)] 
         if not data:
             return []
 
