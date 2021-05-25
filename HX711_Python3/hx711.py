@@ -398,8 +398,8 @@ class HX711:
             else:
                 self._current_channel = 'B'  # else set current channel variable
 
-        # if self._debug_mode:  # print 2's complement value
-        #     print('Binary value as received: {}'.format(bin(data_in)))
+        if self._debug_mode:  # print 2's complement value
+            print('Binary value as received: {}'.format(bin(data_in)))
 
         #check if data is valid
         if (data_in == 0x7fffff
@@ -419,8 +419,8 @@ class HX711:
         else:  # else do not do anything the value is positive number
             signed_data = data_in
 
-        # if self._debug_mode:
-        #     print('Converted 2\'s complement value: {}'.format(signed_data))
+        if self._debug_mode:
+            print('Converted 2\'s complement value: {}'.format(signed_data))
 
         return signed_data
 
@@ -659,11 +659,12 @@ class HX711:
             return True
 
 
-    def outliers_filter(self, data_list):
+    def outliers_filter(self, data_list, stdev_thresh = 1.0):
         """
         It filters out outliers from the provided list of int.
         Median is used as an estimator of outliers.
         Outliers are compared to the standard deviation from the median
+        Default filter is of 1.0 standard deviation from the median
 
         Args:
             data_list([int]): List of int. It can contain Bool False that is removed.
@@ -674,23 +675,16 @@ class HX711:
         if not data:
             return []
 
-        threshold = 1.0
-
         median = stat.median(data)
         dists_from_median = [(abs(measurement - median)) for measurement in data]
-        stdev_dist = stat.stdev(dists_from_median)
-        median_dist = stat.median(dists_from_median)
-        if stdev_dist:
-            ratios_to_stdev = [(dist / stdev_dist) for dist in dists_from_median]
+        stdev = stat.stdev(dists_from_median)
+        if stdev:
+            ratios_to_stdev = [(dist / stdev) for dist in dists_from_median]
         else:
-            # mdev is 0. Therefore return just the median
+            # stdev is 0. Therefore return just the median
             return [median]
         filtered_data = []
         for i in range(len(data)):
-            if ratios_to_stdev[i] < threshold:
+            if ratios_to_stdev[i] < stdev_thresh:
                 filtered_data.append(data[i])
-        if self._debug_mode:
-            print('raw data', data_list)
-            print('ratios to stdev', ratios_to_stdev)
-            print('filtered_data', filtered_data)
         return filtered_data
