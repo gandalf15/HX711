@@ -18,7 +18,8 @@ class HX711:
                  dout_pin,
                  pd_sck_pin,
                  gain_channel_A=128,
-                 select_channel='A'):
+                 select_channel='A',
+                 _debug_mode=False):
         """
         Init a new instance of HX711
 
@@ -54,8 +55,8 @@ class HX711:
         self._scale_ratio_A_128 = 1  # scale ratio for channel A and gain 128
         self._scale_ratio_A_64 = 1  # scale ratio for channel A and gain 64
         self._scale_ratio_B = 1  # scale ratio for channel B
-        self._debug_mode = False
-        self._data_filter = outliers_filter  # default it is used outliers_filter
+        self._debug_mode = _debug_mode
+        self._data_filter = self.outliers_filter  # default it is used outliers_filter
 
         GPIO.setup(self._pd_sck, GPIO.OUT)  # pin _pd_sck is output only
         GPIO.setup(self._dout, GPIO.IN)  # pin _dout is input only
@@ -399,7 +400,7 @@ class HX711:
                 self._current_channel = 'B'  # else set current channel variable
 
         if self._debug_mode:  # print 2's complement value
-            print('Binary value as received: {}\n'.format(bin(data_in)))
+            print('Binary value as received: {}'.format(bin(data_in)))
 
         #check if data is valid
         if (data_in == 0x7fffff
@@ -420,7 +421,7 @@ class HX711:
             signed_data = data_in
 
         if self._debug_mode:
-            print('Converted 2\'s complement value: {}\n'.format(signed_data))
+            print('Converted 2\'s complement value: {}'.format(signed_data))
 
         return signed_data
 
@@ -657,40 +658,36 @@ class HX711:
             return True
 
 
-def outliers_filter(data_list):
-    """
-    It filters out outliers from the provided list of int.
-    Median is used as an estimator of outliers.
+    def outliers_filter(self, data_list):
+        """
+        It filters out outliers from the provided list of int.
+        Median is used as an estimator of outliers.
 
-    Args:
-        data_list([int]): List of int. It can contain Bool False that is removed.
-    
-    Returns: list of filtered data. Excluding outliers.
-    """
-    data = []
-    for num in data_list:
-        if num:
-            data.append(num)
-    # set 'm' to lower value to remove more outliers
-    # set 'm' to higher value to keep more data samples (also some outliers)
-    m = 2.0
-    # It calculates the absolute distance to the median.
-    # Then it scales the distances by their median value (again)
-    # so they are on a relative scale to 'm'.
-    data_median = stat.median(data)
-    abs_distance = []
-    for num in data:
-        abs_distance.append(abs(num - data_median))
-    mdev = stat.median(abs_distance)
-    s = []
-    if mdev:
-        for num in abs_distance:
-            s.append(num / mdev)
-    else:
-        # mdev is 0. Therefore all data samples in the list data have the same value.
-        return data
-    filtered_data = []
-    for i in range(len(data)):
-        if s[i] < m:
-            filtered_data.append(data[i])
-    return filtered_data
+        Args:
+            data_list([int]): List of int. It can contain Bool False that is removed.
+        
+        Returns: list of filtered data. Excluding outliers.
+        """
+        data = [num for num in data_list if type(num) == float or type(num) == int]
+        # set 'threshold' to lower value to remove more outliers
+        # set 'threshold' to higher value to keep more data samples (also some outliers)
+        threshold = 2.0
+        # It calculates the absolute distance to the median.
+        # Then it scales the distances by their median value (again)
+        # so they are on a relative scale to 'mdev'.
+        data_median = stat.median(data)
+        abs_distance = [(abs(num - data_median)) for num in data]
+        median_dist = stat.median(abs_distance)
+        if median_dist:
+            s = [(num / median_dist) for num in abs_distance]
+        else:
+            # mdev is 0. Therefore return just the median
+            return [data_median]
+        filtered_data = []
+        for i in range(len(data)):
+            if s[i] < threshold:
+                filtered_data.append(data[i])
+        if self._debug_mode:
+            print(data, 'raw data')
+            print(filtered_data, 'filtered_data')
+        return filtered_data
