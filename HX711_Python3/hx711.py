@@ -55,7 +55,7 @@ class HX711:
         self._scale_ratio_A_64 = 1  # scale ratio for channel A and gain 64
         self._scale_ratio_B = 1  # scale ratio for channel B
         self._debug_mode = False
-        self._data_filter = outliers_filter  # default it is used outliers_filter
+        self._data_filter = self.outliers_filter  # default it is used outliers_filter
 
         GPIO.setup(self._pd_sck, GPIO.OUT)  # pin _pd_sck is output only
         GPIO.setup(self._dout, GPIO.IN)  # pin _dout is input only
@@ -399,7 +399,7 @@ class HX711:
                 self._current_channel = 'B'  # else set current channel variable
 
         if self._debug_mode:  # print 2's complement value
-            print('Binary value as received: {}\n'.format(bin(data_in)))
+            print('Binary value as received: {}'.format(bin(data_in)))
 
         #check if data is valid
         if (data_in == 0x7fffff
@@ -420,7 +420,7 @@ class HX711:
             signed_data = data_in
 
         if self._debug_mode:
-            print('Converted 2\'s complement value: {}\n'.format(signed_data))
+            print('Converted 2\'s complement value: {}'.format(signed_data))
 
         return signed_data
 
@@ -444,6 +444,8 @@ class HX711:
         data_mean = False
         if readings > 2 and self._data_filter:
             filtered_data = self._data_filter(data_list)
+            if not filtered_data:
+                return False
             if self._debug_mode:
                 print('data_list: {}'.format(data_list))
                 print('filtered_data list: {}'.format(filtered_data))
@@ -657,40 +659,34 @@ class HX711:
             return True
 
 
-def outliers_filter(data_list):
-    """
-    It filters out outliers from the provided list of int.
-    Median is used as an estimator of outliers.
+    def outliers_filter(self, data_list, stdev_thresh = 1.0):
+        """
+        It filters out outliers from the provided list of int.
+        Median is used as an estimator of outliers.
+        Outliers are compared to the standard deviation from the median
+        Default filter is of 1.0 standard deviation from the median
 
-    Args:
-        data_list([int]): List of int. It can contain Bool False that is removed.
-    
-    Returns: list of filtered data. Excluding outliers.
-    """
-    data = []
-    for num in data_list:
-        if num:
-            data.append(num)
-    # set 'm' to lower value to remove more outliers
-    # set 'm' to higher value to keep more data samples (also some outliers)
-    m = 2.0
-    # It calculates the absolute distance to the median.
-    # Then it scales the distances by their median value (again)
-    # so they are on a relative scale to 'm'.
-    data_median = stat.median(data)
-    abs_distance = []
-    for num in data:
-        abs_distance.append(abs(num - data_median))
-    mdev = stat.median(abs_distance)
-    s = []
-    if mdev:
-        for num in abs_distance:
-            s.append(num / mdev)
-    else:
-        # mdev is 0. Therefore all data samples in the list data have the same value.
-        return data
-    filtered_data = []
-    for i in range(len(data)):
-        if s[i] < m:
-            filtered_data.append(data[i])
-    return filtered_data
+        Args:
+            data_list([int]): List of int. It can contain Bool False that is removed.
+        
+        Returns: list of filtered data. Excluding outliers.
+        """
+        # filter out -1 which indicates no signal
+        # filter out booleans
+        data = [num for num in data_list if (num != -1 and num != False and num != True)] 
+        if not data:
+            return []
+
+        median = stat.median(data)
+        dists_from_median = [(abs(measurement - median)) for measurement in data]
+        stdev = stat.stdev(dists_from_median)
+        if stdev:
+            ratios_to_stdev = [(dist / stdev) for dist in dists_from_median]
+        else:
+            # stdev is 0. Therefore return just the median
+            return [median]
+        filtered_data = []
+        for i in range(len(data)):
+            if ratios_to_stdev[i] < stdev_thresh:
+                filtered_data.append(data[i])
+        return filtered_data
