@@ -19,3 +19,19 @@ I recommend to connect pin 15(RATE) of HX711 to VCC (+3.3V) in order to get 80 s
 If you have a cheap green breakout board as I have, you have to desolder and bend the pin 15(RATE) upwards. Then soldeer short wire to VCC.
 
 Great explanation of strain gauges: https://www.allaboutcircuits.com/textbook/direct-current/chpt-9/strain-gauges/
+
+## Install
+
+The python class HX711 is can be installed with the following command:
+   
+   `pip3 install 'git+https://github.com/bytedisciple/HX711.git#egg=HX711&subdirectory=HX711_Python3'`
+   
+Once installed instantiate a HX711 object with the following:
+
+      import RPi.GPIO as GPIO                # import GPIO
+      from hx711 import HX711                # import the class HX711
+      
+      GPIO.setmode(GPIO.BCM)                 # set GPIO pin mode to BCM numbering
+      hx = HX711(dout_pin=5, pd_sck_pin=6)
+    
+
